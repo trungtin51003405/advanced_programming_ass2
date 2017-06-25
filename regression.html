@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./libs/bootstrap/css/bootstrap.min.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div id="canvas"></div>
+        <div class="clearfix"></div>
+        <div id="form" class="">
+            <div class="form-group">
+                <label for="">Hàm cần xấp xỉ</label>
+                <input type="text" name="approximate-function" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="">Nhập số lớp noron</label>
+                <input type="text" name="num-layer" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for=""></label>
+            </div>
+            <div class="form-group">
+                <label for="">Số lần lặp</label>
+                <input type="text" name="num-repeat" class="form-control" value="500" />
+            </div>
+            <div class="form-group">
+                <label for="">Số mẫu</label>
+                <input type="text" name="num-sample" class="form-control" value="50" />
+            </div>
+        </div>
+    </div>
+    <script src="./js/jquery-1.11.1.min.js"></script>
+    <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="./libs/mathjs/math.min.js"></script>
+    <script src="./libs/function-plot/d3.min.js"></script>
+    <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
+    <script>
+    function draw() {
+        try {
+            functionPlot({
+                target: '#canvas',
+                data: [{
+                    fn: '4 * sin(x) + 5 * cos(x/2)',
+                    sampler: 'builtIn', // this will make function-plot use the evaluator of math.js
+                    graphType: 'polyline',
+                    color: '#FF0000',
+                }, {
+                    points: [
+                        [1, 1],
+                        [2, 1],
+                        [2, 2],
+                        [1, 2],
+                        [1, 1]
+                    ],
+                    fnType: 'points',
+                    graphType: 'scatter',
+                    color: '#00FF00'
+                }],
+                xAxis: {
+                    domain: [-6, 6]
+                }
+            });
+        } catch (err) {
+            console.log(err);
+            alert(err);
+        }
+    }
+    draw();
+    </script>
+    <!-- <script src="./js/components/regression.js"></script> -->
+</body>
+
+</html>
