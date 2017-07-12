@@ -18,10 +18,16 @@
                     <input type="text" name="origin-function" class="form-control" value="sin(x)" />
                 </div>
             </div>
-            <div class="col-md-12">
+            <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Nhập số noron lớp ẩn</label>
                     <input type="text" name="num-layer" class="form-control" value="3" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Hệ số học máy</label>
+                    <input type="text" name="learning-rate" class="form-control" value="0.001" />
                 </div>
             </div>
             <div class="col-md-6">
@@ -127,56 +133,58 @@
 
 
     /*************MAIN CODE ******************/
-    var params = {
-            origin_function: $('input[name=origin-function]').val(),
-            num_layers: parseInt($('input[name=num-layer').val()),
-            lower_bound: parseFloat($('input[name=lower-bound]').val()),
-            upper_bound: parseFloat($('input[name=upper-bound').val()),
-            num_repeat: parseInt($('input[name=num-repeat]').val()),
-            num_sample: parseInt($('input[name=num-sample]').val()),
-        }
-        // console.log('DEBUG');
-        // console.log(params);
-    var myPerceptron = new Perceptron(1, 2, 1);
-    var myTrainer = new Trainer(myPerceptron);
-    var trainingSet = [];
-    //Create training set
-    var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
-    for (var i = 0; i < params.num_sample; i++) {
-        var calc_x = params.lower_bound + delta * i;
-        var calc_y = math.eval(params.origin_function, {
-            x: calc_x
+    $(document).ready(function() {
+        //Trigger first click event
+        $('#submit').trigger('click');
+        //Submit button handler
+        $('#submit').click(function(event) {
+            event.preventDefault();
+            var params = {
+                origin_function: $('input[name=origin-function]').val(),
+                num_layers: parseInt($('input[name=num-layer').val()),
+                learning_rate: parseFloat($('input[name=learning-rate]').val()),
+                lower_bound: parseFloat($('input[name=lower-bound]').val()),
+                upper_bound: parseFloat($('input[name=upper-bound').val()),
+                num_repeat: parseInt($('input[name=num-repeat]').val()),
+                num_sample: parseInt($('input[name=num-sample]').val()),
+            }
+            var myPerceptron = new Perceptron(1, 2, 1);
+            var myTrainer = new Trainer(myPerceptron);
+            var trainingSet = [];
+            //Create training set
+            var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
+            for (var i = 0; i < params.num_sample; i++) {
+                var calc_x = params.lower_bound + delta * i;
+                var calc_y = math.eval(params.origin_function, {
+                    x: calc_x
+                });
+                trainingSet.push({
+                    input: [calc_x],
+                    output: [calc_y]
+                })
+            }
+
+
+            myTrainer.train(trainingSet, {
+                rate: params.learning_rate,
+                iterations: params.num_repeat,
+                error: .001,
+                shuffle: true,
+                log: 1000,
+                cost: Trainer.cost.MSE
+            });
+
+            //Trainning complete. Whoo hoo
+            var apro_points = [];
+            for (var i = 0; i < params.num_sample; i++) {
+                var calc_x = params.lower_bound + delta * i;
+                var calc_y = myPerceptron.activate([calc_x]);
+                apro_points.push([calc_x, calc_y]);
+            }
+
+            draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
         });
-        trainingSet.push({
-            input: [calc_x],
-            output: [calc_y]
-        })
-    }
-    myTrainer.train(trainingSet, {
-        rate: .0001,
-        iterations: 30000,
-        error: .001,
-        shuffle: true,
-        log: 1000,
-        cost: Trainer.cost.MSE
     });
-
-    // console.log(trainingSet);
-
-    //Trainning complete. Whoo hoo
-    var apro_points = [];
-    for (var i = 0; i < params.num_sample; i++) {
-        var calc_x = params.lower_bound + delta * i;
-        var calc_y = myPerceptron.activate([calc_x]);
-        apro_points.push([calc_x, calc_y]);
-    }
-    console.log(apro_points);
-
-    // console.log(myPerceptron.activate([0, 0])); // 0.0268581547421616
-    // console.log(myPerceptron.activate([1, 0])); // 0.9829673642853368
-    // console.log(myPerceptron.activate([0, 1])); // 0.9831714267395621
-    // console.log(myPerceptron.activate([1, 1])); // 0.02128894618097928
-    draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
     </script>
 </body>
 
