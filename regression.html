@@ -8,14 +8,27 @@
 </head>
 
 <body>
-    <div id="app">
-        <div id="canvas"></div>
+    <div id="app" class="row container-fluid" style="margin-top: 20px">
+        <div class="col-md-12">
+            <h1 class="text-center">Bài tập lớn Lập trình nâng cao</h1>
+        </div>
         <div class="clearfix"></div>
-        <div id="form" class="">
-            <div class="col-md-12">
+        <div class="col-md-6">
+            <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Hàm cần xấp xỉ</label>
                     <input type="text" name="origin-function" class="form-control" value="sin(x)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Hàm truyền</label>
+                    <select name="squash-function" class="form-control">
+                        <option value="LOGISTIC">LOGISTIC</option>
+                        <option value="IDENTITY">IDENTITY</option>
+                        <option value="TANH">TANH</option>
+                        <option value="HLIM">HLIM</option>
+                    </select>
                 </div>
             </div>
             <div class="col-md-6">
@@ -60,6 +73,9 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-6">
+            <div id="canvas"></div>
+        </div>
     </div>
     <script src="./js/jquery-1.11.1.min.js"></script>
     <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
@@ -86,9 +102,8 @@
                     graphType: 'scatter',
                     color: '#00FF00'
                 }],
-                xAxis: {
-                    domain: [lower_bound, upper_bound]
-                }
+                xDomain: [lower_bound, upper_bound],
+                disableZoom: true
             });
 
         } catch (err) {
@@ -108,15 +123,43 @@
     /*
     @brief: Perceptron 3 layers
     */
-    function Perceptron(input, hidden, output) {
+    function Perceptron(input, hidden, output, iSquash = 'LOGISTIC') {
         // create the layers
         var inputLayer = new Layer(input);
         var hiddenLayer = new Layer(hidden);
         var outputLayer = new Layer(output);
-
+        var squash = '';
+        switch (iSquash) {
+            case 'LOGISTIC':
+                squash = Neuron.squash.LOGISTIC;
+                break;
+            case 'TANH':
+                squash = Neuron.squash.TANH;
+                break;
+            case 'IDENTITY':
+                squash = Neuron.squash.IDENTITY;
+                break;
+            case 'HLIM':
+                squash = Neuron.squash.HLIM;
+                break;
+        }
+        inputLayer.set({
+            squash: squash,
+            bias: 1
+        });
+        hiddenLayer.set({
+            squash: squash,
+            bias: 1
+        });
+        outputLayer.set({
+            squash: Neuron.squash.IDENTITY,
+            bias: 0
+        });
         // connect the layers
         inputLayer.project(hiddenLayer);
         hiddenLayer.project(outputLayer);
+
+
 
         // set the layers
         this.set({
@@ -141,6 +184,7 @@
             event.preventDefault();
             var params = {
                 origin_function: $('input[name=origin-function]').val(),
+                squash_function: $('select[name=squash-function]').val(),
                 num_layers: parseInt($('input[name=num-layer').val()),
                 learning_rate: parseFloat($('input[name=learning-rate]').val()),
                 lower_bound: parseFloat($('input[name=lower-bound]').val()),
@@ -148,7 +192,7 @@
                 num_repeat: parseInt($('input[name=num-repeat]').val()),
                 num_sample: parseInt($('input[name=num-sample]').val()),
             }
-            var myPerceptron = new Perceptron(1, 2, 1);
+            var myPerceptron = new Perceptron(1, 2, 1, params.squash_function);
             var myTrainer = new Trainer(myPerceptron);
             var trainingSet = [];
             //Create training set
@@ -163,7 +207,6 @@
                     output: [calc_y]
                 })
             }
-
 
             myTrainer.train(trainingSet, {
                 rate: params.learning_rate,
@@ -181,7 +224,7 @@
                 var calc_y = myPerceptron.activate([calc_x]);
                 apro_points.push([calc_x, calc_y]);
             }
-
+            console.log(myPerceptron.toJSON());
             draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
         });
     });

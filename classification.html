@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./libs/bootstrap/css/bootstrap.min.css" />
+</head>
+
+<body>
+    <div id="app">
+        <div id="canvas"></div>
+        <div class="clearfix"></div>
+        <div id="form" class="">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="">Hàm cần xấp xỉ</label>
+                    <input type="text" name="origin-function" class="form-control" value="sin(x)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Nhập số noron lớp ẩn</label>
+                    <input type="text" name="num-layer" class="form-control" value="3" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Hệ số học máy</label>
+                    <input type="text" name="learning-rate" class="form-control" value="0.001" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Cận dưới</label>
+                    <input type="text" name="lower-bound" class="form-control" value="0" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Cận trên</label>
+                    <input type="text" name="upper-bound" class="form-control" value="6.28" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="">Số lần lặp</label>
+                    <input type="text" name="num-repeat" class="form-control" value="10000" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="">Số mẫu</label>
+                    <input type="text" name="num-sample" class="form-control" value="100" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    <button type="button" id="submit">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="./js/jquery-1.11.1.min.js"></script>
+    <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+    <!-- Include libraries for plot  -->
+    <script src="./libs/mathjs/math.min.js"></script>
+    <script src="./libs/function-plot/d3.min.js"></script>
+    <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
+    <!-- Include libraries for ANN -->
+    <script src="./libs/ann/synaptic.min.js"></script>
+    <script src="./libs/ann/underscore-min.js"></script>
+    <script>
+    function draw(origin_function = "sin(x)", apro_points = [], lower_bound = 0, upper_bound = 6.28) {
+        try {
+            functionPlot({
+                target: '#canvas',
+                data: [{
+                    fn: origin_function,
+                    sampler: 'builtIn', // this will make function-plot use the evaluator of math.js
+                    graphType: 'polyline',
+                    color: '#FF0000',
+                }, {
+                    points: apro_points,
+                    fnType: 'points',
+                    graphType: 'scatter',
+                    color: '#00FF00'
+                }],
+                xAxis: {
+                    domain: [lower_bound, upper_bound]
+                }
+            });
+
+        } catch (err) {
+            console.log(err);
+            alert(err);
+        }
+    }
+    </script>
+    <!-- <script src="./js/components/regression.js"></script> -->
+    <script>
+    var Neuron = synaptic.Neuron,
+        Layer = synaptic.Layer,
+        Network = synaptic.Network,
+        Trainer = synaptic.Trainer,
+        Architect = synaptic.Architect;
+
+    /*
+    @brief: Perceptron 3 layers
+    */
+    function Perceptron(input, hidden, output) {
+        // create the layers
+        var inputLayer = new Layer(input);
+        var hiddenLayer = new Layer(hidden);
+        var outputLayer = new Layer(output);
+
+        // connect the layers
+        inputLayer.project(hiddenLayer);
+        hiddenLayer.project(outputLayer);
+
+        // set the layers
+        this.set({
+            input: inputLayer,
+            hidden: [hiddenLayer],
+            output: outputLayer
+        });
+    }
+    // extend the prototype chain
+    Perceptron.prototype = new Network();
+    Perceptron.prototype.constructor = Perceptron;
+
+
+
+
+    /*************MAIN CODE ******************/
+    $(document).ready(function() {
+        //Trigger first click event
+        $('#submit').trigger('click');
+        //Submit button handler
+        $('#submit').click(function(event) {
+            event.preventDefault();
+            var params = {
+                origin_function: $('input[name=origin-function]').val(),
+                num_layers: parseInt($('input[name=num-layer').val()),
+                learning_rate: parseFloat($('input[name=learning-rate]').val()),
+                lower_bound: parseFloat($('input[name=lower-bound]').val()),
+                upper_bound: parseFloat($('input[name=upper-bound').val()),
+                num_repeat: parseInt($('input[name=num-repeat]').val()),
+                num_sample: parseInt($('input[name=num-sample]').val()),
+            }
+            var myPerceptron = new Perceptron(1, 2, 1);
+            var myTrainer = new Trainer(myPerceptron);
+            var trainingSet = [];
+            //Create training set
+            var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
+            for (var i = 0; i < params.num_sample; i++) {
+                var calc_x = params.lower_bound + delta * i;
+                var calc_y = math.eval(params.origin_function, {
+                    x: calc_x
+                });
+                trainingSet.push({
+                    input: [calc_x],
+                    output: [calc_y]
+                })
+            }
+
+
+            myTrainer.train(trainingSet, {
+                rate: params.learning_rate,
+                iterations: params.num_repeat,
+                error: .001,
+                shuffle: true,
+                log: 1000,
+                cost: Trainer.cost.MSE
+            });
+
+            //Trainning complete. Whoo hoo
+            var apro_points = [];
+            for (var i = 0; i < params.num_sample; i++) {
+                var calc_x = params.lower_bound + delta * i;
+                var calc_y = myPerceptron.activate([calc_x]);
+                apro_points.push([calc_x, calc_y]);
+            }
+
+            draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
+        });
+    });
+    </script>
+</body>
+
+</html>
