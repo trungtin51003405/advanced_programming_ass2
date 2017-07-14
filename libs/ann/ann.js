@@ -24,7 +24,7 @@
 	  this.old = 0;
 	  this.activation = 0;
 	  this.selfconnection = new Neuron.connection(this, this, 0); // weight = 0 -> not connected
-	  this.squash = Neuron.squash.LOGISTIC;
+	  this.transfer = Neuron.transfer.LOGISTIC;
 	  this.neighboors = {};
 	  this.bias = Math.random() * .2 - .1;
 	}
@@ -54,10 +54,10 @@
 	    }
 
 	    // eq. 16
-	    this.activation = this.squash(this.state);
+	    this.activation = this.transfer(this.state);
 
 	    // f'(s)
-	    this.derivative = this.squash(this.state, true);
+	    this.derivative = this.transfer(this.state, true);
 
 	    // update traces
 	    var influences = [];
@@ -402,14 +402,14 @@
 	            input_weight, store_activation);
 	      }
 	      var derivative = getVar(this, 'derivative');
-	      switch (this.squash) {
-	        case Neuron.squash.LOGISTIC:
+	      switch (this.transfer) {
+	        case Neuron.transfer.LOGISTIC:
 	          buildSentence(activation, ' = (1 / (1 + Math.exp(-', state, ')))',
 	            store_activation);
 	          buildSentence(derivative, ' = ', activation, ' * (1 - ',
 	            activation, ')', store_activation);
 	          break;
-	        case Neuron.squash.TANH:
+	        case Neuron.transfer.TANH:
 	          var eP = getVar('aux');
 	          var eN = getVar('aux_2');
 	          buildSentence(eP, ' = Math.exp(', state, ')', store_activation);
@@ -417,11 +417,11 @@
 	          buildSentence(activation, ' = (', eP, ' - ', eN, ') / (', eP, ' + ', eN, ')', store_activation);
 	          buildSentence(derivative, ' = 1 - (', activation, ' * ', activation, ')', store_activation);
 	          break;
-	        case Neuron.squash.IDENTITY:
+	        case Neuron.transfer.IDENTITY:
 	          buildSentence(activation, ' = ', state, store_activation);
 	          buildSentence(derivative, ' = 1', store_activation);
 	          break;
-	        case Neuron.squash.RELU:
+	        case Neuron.transfer.RELU:
 	          buildSentence(activation, ' = ', state, ' > 0 ? ', state, ' : 0', store_activation);
 	          buildSentence(derivative, ' = ', state, ' > 0 ? 1 : 0', store_activation);
 	          break;
@@ -685,27 +685,27 @@
 	}
 
 	// squashing functions
-	Neuron.squash = {};
+	Neuron.transfer = {};
 
 	// eq. 5 & 5'
-	Neuron.squash.LOGISTIC = function(x, derivate) {
+	Neuron.transfer.LOGISTIC = function(x, derivate) {
 	  var fx = 1 / (1 + Math.exp(-x));
 	  if (!derivate)
 	    return fx;
 	  return fx * (1 - fx);
 	};
-	Neuron.squash.TANH = function(x, derivate) {
+	Neuron.transfer.TANH = function(x, derivate) {
 	  if(derivate)
 	    return 1 - Math.pow(Math.tanh(x), 2);
 	  return Math.tanh(x);
 	};
-	Neuron.squash.IDENTITY = function(x, derivate) {
+	Neuron.transfer.IDENTITY = function(x, derivate) {
 	  return derivate ? 1 : x;
 	};
-	Neuron.squash.HLIM = function(x, derivate) {
+	Neuron.transfer.HLIM = function(x, derivate) {
 	  return derivate ? 1 : x > 0 ? 1 : 0;
 	};
-	Neuron.squash.RELU = function(x, derivate) {
+	Neuron.transfer.RELU = function(x, derivate) {
 	  if (derivate)
 	    return x > 0 ? 1 : 0;
 	  return x > 0 ? x : 0;
@@ -882,8 +882,8 @@
 	      var neuron = this.list[i];
 	      if (options.label)
 	        neuron.label = options.label + '_' + neuron.ID;
-	      if (options.squash)
-	        neuron.squash = options.squash;
+	      if (options.transfer)
+	        neuron.transfer = options.transfer;
 	      if (options.bias)
 	        neuron.bias = options.bias;
 	    }
@@ -1283,11 +1283,11 @@
 	        layer: list[i].layer
 	      };
 
-	      copy.squash = neuron.squash == Neuron.squash.LOGISTIC ? "LOGISTIC" :
-	        neuron.squash == Neuron.squash.TANH ? "TANH" :
-	        neuron.squash == Neuron.squash.IDENTITY ? "IDENTITY" :
-	        neuron.squash == Neuron.squash.HLIM ? "HLIM" :
-	        neuron.squash == Neuron.squash.RELU ? "RELU" :
+	      copy.transfer = neuron.transfer == Neuron.transfer.LOGISTIC ? "LOGISTIC" :
+	        neuron.transfer == Neuron.transfer.TANH ? "TANH" :
+	        neuron.transfer == Neuron.transfer.IDENTITY ? "IDENTITY" :
+	        neuron.transfer == Neuron.transfer.HLIM ? "HLIM" :
+	        neuron.transfer == Neuron.transfer.RELU ? "RELU" :
 	        null;
 
 	      neurons.push(copy);
@@ -1550,7 +1550,7 @@
 	    neuron.old = config.old;
 	    neuron.activation = config.activation;
 	    neuron.bias = config.bias;
-	    neuron.squash = config.squash in Neuron.squash ? Neuron.squash[config.squash] : Neuron.squash.LOGISTIC;
+	    neuron.transfer = config.transfer in Neuron.transfer ? Neuron.transfer[config.transfer] : Neuron.transfer.LOGISTIC;
 	    neurons.push(neuron);
 
 	    if (config.layer == 'input')

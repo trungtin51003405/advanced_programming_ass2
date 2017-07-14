@@ -23,7 +23,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Hàm truyền</label>
-                    <select name="squash-function" class="form-control">
+                    <select name="transfer-function" class="form-control">
                         <option value="TANH">TANH</option>
                         <option value="LOGISTIC">LOGISTIC</option>
                         <option value="IDENTITY">IDENTITY</option>
@@ -125,33 +125,33 @@
     /*
     @brief: Perceptron 3 layers
     */
-    function Perceptron(input, hidden, output, iSquash = 'TANH') {
+    function Perceptron(input, hidden, output, iTransfer = 'TANH') {
         // create the layers
         var inputLayer = new Layer(input);
         var hiddenLayer = new Layer(hidden);
         var outputLayer = new Layer(output);
-        var squash = '';
-        switch (iSquash) {
+        var transfer = '';
+        switch (iTransfer) {
             case 'LOGISTIC':
-                squash = Neuron.squash.LOGISTIC;
+                transfer = Neuron.transfer.LOGISTIC;
                 break;
             case 'TANH':
-                squash = Neuron.squash.TANH;
+                transfer = Neuron.transfer.TANH;
                 break;
             case 'IDENTITY':
-                squash = Neuron.squash.IDENTITY;
+                transfer = Neuron.transfer.IDENTITY;
                 break;
         }
         inputLayer.set({
-            squash: Neuron.squash.IDENTITY,
+            transfer: Neuron.transfer.IDENTITY,
             bias: 1
         });
         hiddenLayer.set({
-            squash: squash,
+            transfer: transfer,
             bias: 1
         });
         outputLayer.set({
-            squash: Neuron.squash.IDENTITY,
+            transfer: Neuron.transfer.IDENTITY,
             bias: 0
         });
         // connect the layers
@@ -181,7 +181,7 @@
             event.preventDefault();
             var params = {
                 origin_function: $('input[name=origin-function]').val(),
-                squash_function: $('select[name=squash-function]').val(),
+                transfer_function: $('select[name=transfer-function]').val(),
                 num_layers: parseInt($('input[name=num-layer').val()),
                 learning_rate: parseFloat($('input[name=learning-rate]').val()),
                 lower_bound: parseFloat($('input[name=lower-bound]').val()),
@@ -190,7 +190,7 @@
                 num_sample: parseInt($('input[name=num-sample]').val()),
                 err_rate: parseFloat($('input[name=error-rate]').val()),
             }
-            var myPerceptron = new Perceptron(1, 2, 1, params.squash_function);
+            var myPerceptron = new Perceptron(1, 2, 1, params.transfer_function);
             var myTrainer = new Trainer(myPerceptron);
             var trainingSet = [];
             //Create training set
