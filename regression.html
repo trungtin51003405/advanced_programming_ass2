@@ -90,10 +90,7 @@
     <script src="./libs/function-plot/d3.min.js"></script>
     <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
     <!-- Include libraries for ANN -->
-    <!-- <script src="./libs/ann/synaptic.min.js"></script> -->
     <script src="./libs/ann/ann.js"></script>
-    <!-- <script src="./libs/ann/synaptic.js"></script> -->
-    <script src="./libs/ann/underscore-min.js"></script>
     <script>
     function draw(origin_function = "sin(x)", apro_points = [], lower_bound = 0, upper_bound = 6.28) {
         try {
@@ -108,7 +105,7 @@
                     points: apro_points,
                     fnType: 'points',
                     graphType: 'scatter',
-                    color: '#00FF00'
+                    color: '#0000FF'
                 }],
                 xDomain: [lower_bound, upper_bound],
                 disableZoom: false
@@ -119,9 +116,6 @@
             alert(err);
         }
     }
-    </script>
-    <!-- <script src="./js/components/regression.js"></script> -->
-    <script>
 
     /*
     @brief: Perceptron 3 layers
