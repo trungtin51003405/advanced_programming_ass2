@@ -25,6 +25,7 @@
                     <label for="">Hàm truyền</label>
                     <select name="transfer-function" class="form-control">
                         <option value="TANH">TANH</option>
+                        <option value="RELU">RELU</option>
                         <option value="LOGISTIC">LOGISTIC</option>
                         <option value="IDENTITY">IDENTITY</option>
                     </select>
@@ -137,6 +138,9 @@
                 break;
             case 'TANH':
                 transfer = Neuron.transfer.TANH;
+                break;
+            case 'RELU':
+                transfer = Neuron.transfer.RELU;
                 break;
             case 'IDENTITY':
                 transfer = Neuron.transfer.IDENTITY;

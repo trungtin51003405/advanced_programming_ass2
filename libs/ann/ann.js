@@ -659,9 +659,6 @@
 	Neuron.transfer.IDENTITY = function(x, derivate) {
 	  return derivate ? 1 : x;
 	};
-	Neuron.transfer.HLIM = function(x, derivate) {
-	  return derivate ? 1 : x > 0 ? 1 : 0;
-	};
 	Neuron.transfer.RELU = function(x, derivate) {
 	  if (derivate)
 	    return x > 0 ? 1 : 0;
@@ -685,7 +682,6 @@
 	    }
 	  }
 	})();
-
 
 
 	/*******************************************************************************************
@@ -750,18 +746,16 @@
 	  },
 
 	  // projects a connection from this layer to another one
-	  project: function(layer, type, weights) {
+	  project: function(layer, weights) {
 
 	    if (layer instanceof Network)
 	      layer = layer.layers.input;
 
 	    if (layer instanceof Layer) {
 	      if (!this.connected(layer))
-	        return new Layer.connection(this, layer, type, weights);
+	        return new Layer.connection(this, layer, weights);
 	    } else
 	      throw new Error("Invalid argument, you can only project connections to LAYERS and NETWORKS!");
-
-
 	  },
 
 	  // true of false whether the layer is connected to another layer (parameter) or not
@@ -778,19 +772,8 @@
 	      }
 	    }
 	    if (connections == this.size * layer.size)
-	      return Layer.connectionType.ALL_TO_ALL;
-
-	    // Check if ONE to ONE connection
-	    connections = 0;
-	    for (var neuron in this.list) {
-	      var from = this.list[neuron];
-	      var to = layer.list[neuron];
-	      var connected = from.connected(to);
-	      if (connected.type == 'projected')
-	        connections++;
-	    }
-	    if (connections == this.size)
-	      return Layer.connectionType.ONE_TO_ONE;
+	      return Layer.isConnected;
+		return false;
 	  },
 
 	  // clears all the neuorns in the layer
@@ -838,43 +821,19 @@
 	}
 
 	// represents a connection from one layer to another, and keeps track of its weight and gain
-	Layer.connection = function LayerConnection(fromLayer, toLayer, type, weights) {
+	Layer.connection = function LayerConnection(fromLayer, toLayer, weights) {
 	  this.ID = Layer.connection.uid();
 	  this.from = fromLayer;
 	  this.to = toLayer;
-	  this.type = type;
 	  this.connections = {};
 	  this.list = [];
 	  this.size = 0;
 	  this.gatedfrom = [];
 
-	  if (typeof this.type == 'undefined')
-	  {
-	    if (fromLayer == toLayer)
-	      this.type = Layer.connectionType.ONE_TO_ONE;
-	    else
-	      this.type = Layer.connectionType.ALL_TO_ALL;
-	  }
-
-	  if (this.type == Layer.connectionType.ALL_TO_ALL ||
-	      this.type == Layer.connectionType.ALL_TO_ELSE) {
-	    for (var here in this.from.list) {
-	      for (var there in this.to.list) {
-	        var from = this.from.list[here];
-	        var to = this.to.list[there];
-	        if(this.type == Layer.connectionType.ALL_TO_ELSE && from == to)
-	          continue;
-	        var connection = from.project(to, weights);
-
-	        this.connections[connection.ID] = connection;
-	        this.size = this.list.push(connection);
-	      }
-	    }
-	  } else if (this.type == Layer.connectionType.ONE_TO_ONE) {
-
-	    for (var neuron in this.from.list) {
-	      var from = this.from.list[neuron];
-	      var to = this.to.list[neuron];
+	  for (var here in this.from.list) {
+	    for (var there in this.to.list) {
+	      var from = this.from.list[here];
+	      var to = this.to.list[there];
 	      var connection = from.project(to, weights);
 
 	      this.connections[connection.ID] = connection;
@@ -884,12 +843,8 @@
 
 	  fromLayer.connectedTo.push(this);
 	}
-
-	// types of connections
-	Layer.connectionType = {};
-	Layer.connectionType.ALL_TO_ALL = "ALL TO ALL";
-	Layer.connectionType.ONE_TO_ONE = "ONE TO ONE";
-	Layer.connectionType.ALL_TO_ELSE = "ALL TO ELSE";
+	
+	Layer.isConnected = true;
 
 	(function() {
 	  var connections = 0;
@@ -916,19 +871,19 @@
 
 	  // feed-forward activation of all the layers to produce an ouput
 	  activate: function(input) {
-	    if (this.optimized === false)
-	    {
+	    // if (this.optimized === false)
+	    // {
 	      this.layers.input.activate(input);
 	      for (var i = 0; i < this.layers.hidden.length; i++)
 	        this.layers.hidden[i].activate();
 	      return this.layers.output.activate();
-	    }
-	    else
-	    {
-	      if (this.optimized == null)
-	        this.optimize();
-	      return this.optimized.activate(input);
-	    }
+	    // }
+	    // else
+	    // {
+	      // if (this.optimized == null)
+	        // this.optimize();
+	      // return this.optimized.activate(input);
+	    // }
 	  },
 
 	  // back-propagate the error thru the network
@@ -959,13 +914,6 @@
 	      return this.layers.output.project(unit, type, weights);
 
 	    throw new Error("Invalid argument, you can only project connections to LAYERS and NETWORKS!");
-	  },
-
-	  // let this network gate a connection
-	  gate: function(connection, type) {
-	    if (this.optimized)
-	      this.optimized.reset();
-	    this.layers.output.gate(connection, type);
 	  },
 
 	  // clear all elegibility traces and extended elegibility traces (the network forgets its context, but not what was trained)
@@ -1199,321 +1147,6 @@
 	      this.optimized.reset();
 	    this.optimized = bool? null : false;
 	  },
-
-	  // returns a json that represents all the neurons and connections of the network
-	  toJSON: function(ignoreTraces) {
-	    this.restore();
-
-	    var list = this.neurons();
-	    var neurons = [];
-	    var connections = [];
-
-	    // link id's to positions in the array
-	    var ids = {};
-	    for (var i = 0; i < list.length; i++) {
-	      var neuron = list[i].neuron;
-	      while (neuron.neuron)
-	        neuron = neuron.neuron;
-	      ids[neuron.ID] = i;
-
-	      var copy = {
-	        trace: {
-	          elegibility: {},
-	          extended: {}
-	        },
-	        state: neuron.state,
-	        old: neuron.old,
-	        activation: neuron.activation,
-	        bias: neuron.bias,
-	        layer: list[i].layer
-	      };
-
-	      copy.transfer = neuron.transfer == Neuron.transfer.LOGISTIC ? "LOGISTIC" :
-	        neuron.transfer == Neuron.transfer.TANH ? "TANH" :
-	        neuron.transfer == Neuron.transfer.IDENTITY ? "IDENTITY" :
-	        neuron.transfer == Neuron.transfer.HLIM ? "HLIM" :
-	        neuron.transfer == Neuron.transfer.RELU ? "RELU" :
-	        null;
-
-	      neurons.push(copy);
-	    }
-
-	    for(var i = 0; i < list.length; i++){
-	      var neuron = list[i].neuron;
-	      while (neuron.neuron)
-	        neuron = neuron.neuron;
-
-	      for (var j in neuron.connections.projected) {
-	        var connection = neuron.connections.projected[j];
-	        connections.push({
-	          from: ids[connection.from.ID],
-	          to: ids[connection.to.ID],
-	          weight: connection.weight,
-	          gater: connection.gater ? ids[connection.gater.ID] : null,
-	        });
-	      }
-	    }
-
-	    return {
-	      neurons: neurons,
-	      connections: connections
-	    }
-	  },
-
-	  // export the topology into dot language which can be visualized as graphs using dot
-	  /* example: ... console.log(net.toDotLang());
-	              $ node example.js > example.dot
-	              $ dot example.dot -Tpng > out.png
-	  */
-	  toDot: function(edgeConnection) {
-	    if (! typeof edgeConnection)
-	      edgeConnection = false;
-	    var code = "digraph nn {\n    rankdir = BT\n";
-	    var layers = [this.layers.input].concat(this.layers.hidden, this.layers.output);
-	    for (var i = 0; i < layers.length; i++) {
-	      for (var j = 0; j < layers[i].connectedTo.length; j++) { // projections
-	        var connection = layers[i].connectedTo[j];
-	        var layerTo = connection.to;
-	        var size = connection.size;
-	        var layerID = layers.indexOf(layers[i]);
-	        var layerToID = layers.indexOf(layerTo);
-	        /* http://stackoverflow.com/questions/26845540/connect-edges-with-graph-dot
-	         * DOT does not support edge-to-edge connections
-	         * This workaround produces somewhat weird graphs ...
-	        */
-	        if ( edgeConnection) {
-	          if (connection.gatedfrom.length) {
-	            var fakeNode = "fake" + layerID + "_" + layerToID;
-	            code += "    " + fakeNode +
-	              " [label = \"\", shape = point, width = 0.01, height = 0.01]\n";
-	            code += "    " + layerID + " -> " + fakeNode + " [label = " + size + ", arrowhead = none]\n";
-	            code += "    " + fakeNode + " -> " + layerToID + "\n";
-	          } else
-	            code += "    " + layerID + " -> " + layerToID + " [label = " + size + "]\n";
-	          for (var from in connection.gatedfrom) { // gatings
-	            var layerfrom = connection.gatedfrom[from].layer;
-	            var layerfromID = layers.indexOf(layerfrom);
-	            code += "    " + layerfromID + " -> " + fakeNode + " [color = blue]\n";
-	          }
-	        } else {
-	          code += "    " + layerID + " -> " + layerToID + " [label = " + size + "]\n";
-	          for (var from in connection.gatedfrom) { // gatings
-	            var layerfrom = connection.gatedfrom[from].layer;
-	            var layerfromID = layers.indexOf(layerfrom);
-	            code += "    " + layerfromID + " -> " + layerToID + " [color = blue]\n";
-	          }
-	        }
-	      }
-	    }
-	    code += "}\n";
-	    return {
-	      code: code,
-	      link: "https://chart.googleapis.com/chart?chl=" + escape(code.replace("/ /g", "+")) + "&cht=gv"
-	    }
-	  },
-
-	  // returns a function that works as the activation of the network and can be used without depending on the library
-	  standalone: function() {
-	    if (!this.optimized)
-	      this.optimize();
-
-	    var data = this.optimized.data;
-
-	    // build activation function
-	    var activation = "function (input) {\n";
-
-	    // build inputs
-	    for (var i = 0; i < data.inputs; i++)
-	      activation += "F[" + data.inputs[i] + "] = input[" + i + "];\n";
-
-	    // build network activation
-	    for (var i = 0; i < data.activate.length; i++) { // shouldn't this be layer?
-	      for (var j = 0; j <  data.activate[i].length; j++)
-	        activation += data.activate[i][j].join('') + "\n";
-	    }
-
-	    // build outputs
-	    activation += "var output = [];\n";
-	    for (var i = 0; i < data.outputs.length; i++)
-	      activation += "output[" + i + "] = F[" + data.outputs[i] + "];\n";
-	    activation += "return output;\n}";
-
-	    // reference all the positions in memory
-	    var memory = activation.match(/F\[(\d+)\]/g);
-	    var dimension = 0;
-	    var ids = {};
-
-	    for (var i = 0; i < memory.length; i++) {
-	      var tmp = memory[i].match(/\d+/)[0];
-	      if (!(tmp in ids)) {
-	        ids[tmp] = dimension++;
-	      }
-	    }
-	    var hardcode = "F = {\n";
-
-	    for (var i in ids)
-	      hardcode += ids[i] + ": " + this.optimized.memory[i] + ",\n";
-	    hardcode = hardcode.substring(0, hardcode.length - 2) + "\n};\n";
-	    hardcode = "var run = " + activation.replace(/F\[(\d+)]/g, function(
-	      index) {
-	      return 'F[' + ids[index.match(/\d+/)[0]] + ']'
-	    }).replace("{\n", "{\n" + hardcode + "") + ";\n";
-	    hardcode += "return run";
-
-	    // return standalone function
-	    return new Function(hardcode)();
-	  },
-
-
-	  // Return a HTML5 WebWorker specialized on training the network stored in `memory`.
-	  // Train based on the given dataSet and options.
-	  // The worker returns the updated `memory` when done.
-	  worker: function(memory, set, options) {
-
-	    // Copy the options and set defaults (options might be different for each worker)
-	    var workerOptions = {};
-	    if(options) workerOptions = options;
-	    workerOptions.rate = options.rate || .2;
-	    workerOptions.iterations = options.iterations || 100000;
-	    workerOptions.error = options.error || .005;
-	    workerOptions.cost = options.cost || null;
-	    workerOptions.crossValidate = options.crossValidate || null;
-
-	    // Cost function might be different for each worker
-	    costFunction = "var cost = " + (options && options.cost || this.cost || Trainer.cost.MSE) + ";\n";
-	    var workerFunction = Network.getWorkerSharedFunctions();
-	    workerFunction = workerFunction.replace(/var cost = options && options\.cost \|\| this\.cost \|\| Trainer\.cost\.MSE;/g, costFunction);
-
-	    // Set what we do when training is finished
-	    workerFunction = workerFunction.replace('return results;',
-	                      'postMessage({action: "done", message: results, memoryBuffer: F}, [F.buffer]);');
-
-	    // Replace log with postmessage
-	    workerFunction = workerFunction.replace("console.log('iterations', iterations, 'error', error, 'rate', currentRate)",
-	              "postMessage({action: 'log', message: {\n" +
-	                  "iterations: iterations,\n" +
-	                  "error: error,\n" +
-	                  "rate: currentRate\n" +
-	                "}\n" +
-	              "})");
-
-	    // Replace schedule with postmessage
-	    workerFunction = workerFunction.replace("abort = this.schedule.do({ error: error, iterations: iterations, rate: currentRate })",
-	              "postMessage({action: 'schedule', message: {\n" +
-	                  "iterations: iterations,\n" +
-	                  "error: error,\n" +
-	                  "rate: currentRate\n" +
-	                "}\n" +
-	              "})");
-
-	    if (!this.optimized)
-	      this.optimize();
-
-	    var hardcode = "var inputs = " + this.optimized.data.inputs.length + ";\n";
-	    hardcode += "var outputs = " + this.optimized.data.outputs.length + ";\n";
-	    hardcode += "var F =  new Float64Array([" + this.optimized.memory.toString() + "]);\n";
-	    hardcode += "var activate = " + this.optimized.activate.toString() + ";\n";
-	    hardcode += "var propagate = " + this.optimized.propagate.toString() + ";\n";
-	    hardcode +=
-	        "onmessage = function(e) {\n" +
-	          "if (e.data.action == 'startTraining') {\n" +
-	            "train(" + JSON.stringify(set) + "," + JSON.stringify(workerOptions) + ");\n" +
-	          "}\n" +
-	        "}";
-
-	    var workerSourceCode = workerFunction + '\n' + hardcode;
-	    var blob = new Blob([workerSourceCode]);
-	    var blobURL = window.URL.createObjectURL(blob);
-
-	    return new Worker(blobURL);
-	  },
-
-	  // returns a copy of the network
-	  clone: function() {
-	    return Network.fromJSON(this.toJSON());
-	  }
-	};
-
-	/**
-	 * Creates a static String to store the source code of the functions
-	 *  that are identical for all the workers (train, _trainSet, test)
-	 *
-	 * @return {String} Source code that can train a network inside a worker.
-	 * @static
-	 */
-	Network.getWorkerSharedFunctions = function() {
-	  // If we already computed the source code for the shared functions
-	  if(typeof Network._SHARED_WORKER_FUNCTIONS !== 'undefined')
-	    return Network._SHARED_WORKER_FUNCTIONS;
-
-	  // Otherwise compute and return the source code
-	  // We compute them by simply copying the source code of the train, _trainSet and test functions
-	  //  using the .toString() method
-
-	  // Load and name the train function
-	  var train_f = Trainer.prototype.train.toString();
-	  train_f = train_f.replace('function (set', 'function train(set') + '\n';
-
-	  // Load and name the _trainSet function
-	  var _trainSet_f = Trainer.prototype._trainSet.toString().replace(/this.network./g, '');
-	  _trainSet_f = _trainSet_f.replace('function (set', 'function _trainSet(set') + '\n';
-	  _trainSet_f = _trainSet_f.replace('this.crossValidate', 'crossValidate');
-	  _trainSet_f = _trainSet_f.replace('crossValidate = true', 'crossValidate = { }');
-
-	  // Load and name the test function
-	  var test_f = Trainer.prototype.test.toString().replace(/this.network./g, '');
-	  test_f = test_f.replace('function (set', 'function test(set') + '\n';
-
-	  return Network._SHARED_WORKER_FUNCTIONS = train_f + _trainSet_f + test_f;
-	};
-
-	// rebuild a network that has been stored in a json using the method toJSON()
-	Network.fromJSON = function(json) {
-	  var neurons = [];
-
-	  var layers = {
-	    input: new Layer(),
-	    hidden: [],
-	    output: new Layer()
-	  };
-
-	  for (var i = 0; i < json.neurons.length; i++) {
-	    var config = json.neurons[i];
-
-	    var neuron = new Neuron();
-	    neuron.trace.elegibility = {};
-	    neuron.trace.extended = {};
-	    neuron.state = config.state;
-	    neuron.old = config.old;
-	    neuron.activation = config.activation;
-	    neuron.bias = config.bias;
-	    neuron.transfer = config.transfer in Neuron.transfer ? Neuron.transfer[config.transfer] : Neuron.transfer.LOGISTIC;
-	    neurons.push(neuron);
-
-	    if (config.layer == 'input')
-	      layers.input.add(neuron);
-	    else if (config.layer == 'output')
-	      layers.output.add(neuron);
-	    else {
-	      if (typeof layers.hidden[config.layer] == 'undefined')
-	        layers.hidden[config.layer] = new Layer();
-	      layers.hidden[config.layer].add(neuron);
-	    }
-	  }
-
-	  for (var i = 0; i < json.connections.length; i++) {
-	    var config = json.connections[i];
-	    var from = neurons[config.from];
-	    var to = neurons[config.to];
-	    var weight = config.weight;
-	    var gater = neurons[config.gater];
-
-	    var connection = from.project(to, weight);
-	    if (gater)
-	      gater.gate(connection);
-	  }
-
-	  return new Network(layers);
 	};
 
 
