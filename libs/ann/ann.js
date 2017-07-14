@@ -641,7 +641,7 @@
 	  this.gater = null;
 	}
 
-	// squashing functions
+	// transfering functions
 	Neuron.transfer = {};
 
 	// eq. 5 & 5'
@@ -1146,6 +1146,65 @@
 	    if (this.optimized)
 	      this.optimized.reset();
 	    this.optimized = bool? null : false;
+	  },
+	  
+	  // returns a json that represents all the neurons and connections of the network
+	  toJSON: function(ignoreTraces) {
+	    this.restore();
+
+	    var list = this.neurons();
+	    var neurons = [];
+	    var connections = [];
+
+	    // link id's to positions in the array
+	    var ids = {};
+	    for (var i = 0; i < list.length; i++) {
+	      var neuron = list[i].neuron;
+	      while (neuron.neuron)
+	        neuron = neuron.neuron;
+	      ids[neuron.ID] = i;
+
+	      var copy = {
+	        trace: {
+	          elegibility: {},
+	          extended: {}
+	        },
+	        state: neuron.state,
+	        old: neuron.old,
+	        activation: neuron.activation,
+	        bias: neuron.bias,
+	        layer: list[i].layer
+	      };
+
+	      copy.transfer = neuron.transfer == Neuron.transfer.LOGISTIC ? "LOGISTIC" :
+	        neuron.transfer == Neuron.transfer.TANH ? "TANH" :
+	        neuron.transfer == Neuron.transfer.IDENTITY ? "IDENTITY" :
+	        neuron.transfer == Neuron.transfer.RELU ? "RELU" :
+	        null;
+
+	      neurons.push(copy);
+	    }
+
+	    for(var i = 0; i < list.length; i++){
+	      var neuron = list[i].neuron;
+	      while (neuron.neuron)
+	        neuron = neuron.neuron;
+
+	      for (var j in neuron.connections.projected) {
+	        var connection = neuron.connections.projected[j];
+	        connections.push({
+	          from: ids[connection.from.ID],
+	          to: ids[connection.to.ID],
+	          weight: connection.weight,
+	          gater: connection.gater ? ids[connection.gater.ID] : null,
+	        });
+	      }
+	    }
+
+	    return {
+	      neurons: neurons,
+	      connections: connections
+	    }
 	  },
 	};
 

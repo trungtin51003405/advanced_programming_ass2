@@ -33,7 +33,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Hàm truyền</label>
-                        <select name="squash-function" class="form-control">
+                        <select name="transfer-function" class="form-control">
                             <option value="LOGISTIC">LOGISTIC</option>
                             <option value="IDENTITY">IDENTITY</option>
                             <option value="TANH">TANH</option>
@@ -60,7 +60,8 @@
     <script src="./libs/function-plot/d3.min.js"></script>
     <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
     <!-- Include libraries for ANN -->
-    <script src="./libs/ann/synaptic.min.js"></script>
+    <!-- <script src="./libs/ann/synaptic.min.js"></script> -->
+    <script src="./libs/ann/ann.js"></script>
     <script src="./libs/ann/underscore-min.js"></script>
 
     <!-- Include Processing -->
@@ -97,45 +98,45 @@
     </script>
     <!-- <script src="./js/components/regression.js"></script> -->
     <script>
-    var Neuron = synaptic.Neuron,
-        Layer = synaptic.Layer,
-        Network = synaptic.Network,
-        Trainer = synaptic.Trainer,
-        Architect = synaptic.Architect;
+    // var Neuron = synaptic.Neuron,
+    //     Layer = synaptic.Layer,
+    //     Network = synaptic.Network,
+    //     Trainer = synaptic.Trainer,
+    //     Architect = synaptic.Architect;
     var startDraw = false;
     /*
     @brief: Perceptron 3 layers
     */
-    function Perceptron(input, hidden, output, iSquash = 'LOGISTIC') {
+    function Perceptron(input, hidden, output, iTransfer = 'LOGISTIC') {
         // create the layers
         var inputLayer = new Layer(input);
         var hiddenLayer = new Layer(hidden);
         var outputLayer = new Layer(output);
-        var squash = '';
-        switch (iSquash) {
+        var transfer = '';
+        switch (iTransfer) {
             case 'LOGISTIC':
-                squash = Neuron.squash.LOGISTIC;
+                transfer = Neuron.transfer.LOGISTIC;
                 break;
             case 'TANH':
-                squash = Neuron.squash.TANH;
+                transfer = Neuron.transfer.TANH;
                 break;
             case 'IDENTITY':
-                squash = Neuron.squash.IDENTITY;
+                transfer = Neuron.transfer.IDENTITY;
                 break;
             case 'HLIM':
-                squash = Neuron.squash.HLIM;
+                transfer = Neuron.transfer.HLIM;
                 break;
         }
         inputLayer.set({
-            squash: squash,
+            transfer: transfer,
             bias: 1
         });
         hiddenLayer.set({
-            squash: squash,
+            transfer: transfer,
             bias: 1
         });
         outputLayer.set({
-            squash: Neuron.squash.IDENTITY,
+            transfer: Neuron.transfer.IDENTITY,
             bias: 0
         });
         // connect the layers
@@ -168,13 +169,13 @@
             event.preventDefault();
             //Collect parameters
             var params = {
-                squash_function: $('select[name=squash-function]').val(),
+                transfer_function: $('select[name=transfer-function]').val(),
                 num_layers: parseInt($('input[name=num-layer').val()),
                 learning_rate: parseFloat($('input[name=learning-rate]').val()),
                 num_repeat: parseInt($('input[name=num-repeat]').val()),
             }
             //Create new Perceptron
-            var myPerceptron = new Perceptron(2, 3, 1, params.squash_function);
+            var myPerceptron = new Perceptron(2, 3, 1, params.transfer_function);
             var myTrainer = new Trainer(myPerceptron);
 
             //Create random red candidates
