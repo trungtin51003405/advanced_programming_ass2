@@ -24,10 +24,9 @@
                 <div class="form-group">
                     <label for="">Hàm truyền</label>
                     <select name="squash-function" class="form-control">
+                        <option value="TANH">TANH</option>
                         <option value="LOGISTIC">LOGISTIC</option>
                         <option value="IDENTITY">IDENTITY</option>
-                        <option value="TANH">TANH</option>
-                        <option value="HLIM">HLIM</option>
                     </select>
                 </div>
             </div>
@@ -55,10 +54,16 @@
                     <input type="text" name="upper-bound" class="form-control" value="6.28" />
                 </div>
             </div>
-            <div class="col-md-12">
+            <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Số lần lặp</label>
-                    <input type="text" name="num-repeat" class="form-control" value="10000" />
+                    <input type="text" name="num-repeat" class="form-control" value="100000" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="">Lỗi</label>
+                    <input type="text" name="error-rate" class="form-control" value="0.001" />
                 </div>
             </div>
             <div class="col-md-12">
@@ -84,7 +89,9 @@
     <script src="./libs/function-plot/d3.min.js"></script>
     <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
     <!-- Include libraries for ANN -->
-    <script src="./libs/ann/synaptic.min.js"></script>
+    <!-- <script src="./libs/ann/synaptic.min.js"></script> -->
+    <script src="./libs/ann/ann.js"></script>
+    <!-- <script src="./libs/ann/synaptic.js"></script> -->
     <script src="./libs/ann/underscore-min.js"></script>
     <script>
     function draw(origin_function = "sin(x)", apro_points = [], lower_bound = 0, upper_bound = 6.28) {
@@ -103,7 +110,7 @@
                     color: '#00FF00'
                 }],
                 xDomain: [lower_bound, upper_bound],
-                disableZoom: true
+                disableZoom: false
             });
 
         } catch (err) {
@@ -114,16 +121,11 @@
     </script>
     <!-- <script src="./js/components/regression.js"></script> -->
     <script>
-    var Neuron = synaptic.Neuron,
-        Layer = synaptic.Layer,
-        Network = synaptic.Network,
-        Trainer = synaptic.Trainer,
-        Architect = synaptic.Architect;
 
     /*
     @brief: Perceptron 3 layers
     */
-    function Perceptron(input, hidden, output, iSquash = 'LOGISTIC') {
+    function Perceptron(input, hidden, output, iSquash = 'TANH') {
         // create the layers
         var inputLayer = new Layer(input);
         var hiddenLayer = new Layer(hidden);
@@ -139,12 +141,9 @@
             case 'IDENTITY':
                 squash = Neuron.squash.IDENTITY;
                 break;
-            case 'HLIM':
-                squash = Neuron.squash.HLIM;
-                break;
         }
         inputLayer.set({
-            squash: squash,
+            squash: Neuron.squash.IDENTITY,
             bias: 1
         });
         hiddenLayer.set({
@@ -158,8 +157,6 @@
         // connect the layers
         inputLayer.project(hiddenLayer);
         hiddenLayer.project(outputLayer);
-
-
 
         // set the layers
         this.set({
@@ -191,6 +188,7 @@
                 upper_bound: parseFloat($('input[name=upper-bound').val()),
                 num_repeat: parseInt($('input[name=num-repeat]').val()),
                 num_sample: parseInt($('input[name=num-sample]').val()),
+                err_rate: parseFloat($('input[name=error-rate]').val()),
             }
             var myPerceptron = new Perceptron(1, 2, 1, params.squash_function);
             var myTrainer = new Trainer(myPerceptron);
@@ -211,7 +209,7 @@
             myTrainer.train(trainingSet, {
                 rate: params.learning_rate,
                 iterations: params.num_repeat,
-                error: .001,
+                error: params.err_rate,
                 shuffle: true,
                 log: 1000,
                 cost: Trainer.cost.MSE
@@ -224,7 +222,8 @@
                 var calc_y = myPerceptron.activate([calc_x]);
                 apro_points.push([calc_x, calc_y]);
             }
-            console.log(myPerceptron.toJSON());
+            // console.log(myPerceptron.toDot());
+            // console.log(myPerceptron.toJSON());
             draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
         });
     });
