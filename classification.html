@@ -81,7 +81,7 @@
                     points: points2,
                     fnType: 'points',
                     graphType: 'scatter',
-                    color: '#00FF00'
+                    color: '#0000FF'
                 }],
                 xAxis: {
                     domain: [-10, 10]
@@ -128,7 +128,7 @@
                 break;
         }
         inputLayer.set({
-            transfer: transfer,
+            transfer: Neuron.transfer.IDENTITY,
             bias: 1
         });
         hiddenLayer.set({
