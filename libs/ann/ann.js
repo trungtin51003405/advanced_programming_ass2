@@ -23,7 +23,6 @@
 	  this.state = 0;
 	  this.old = 0;
 	  this.activation = 0;
-	  this.selfconnection = new Neuron.connection(this, this, 0); // weight = 0 -> not connected
 	  this.transfer = Neuron.transfer.LOGISTIC;
 	  this.neighboors = {};
 	  this.bias = Math.random() * .2 - .1;
@@ -45,8 +44,7 @@
 	    this.old = this.state;
 
 	    // eq. 15
-	    this.state = this.selfconnection.gain * this.selfconnection.weight *
-	      this.state + this.bias;
+	    this.state = this.bias;
 
 	    for (var i in this.connections.inputs) {
 	      var input = this.connections.inputs[i];
@@ -65,11 +63,10 @@
 	      // extended elegibility trace
 	      var neuron = this.neighboors[id];
 
-	      // if gated neuron's selfconnection is gated by this unit, the influence keeps track of the neuron's old state
-	      var influence = neuron.selfconnection.gater == this ? neuron.old : 0;
+	      var influence = 0;
 
 	      // index runs over all the incoming connections to the gated neuron that are gated by this unit
-	      for (var incoming in this.trace.influences[neuron.ID]) { // captures the effect that has an input connection to this unit, on a neuron that is gated by this unit
+	      for (var incoming in this.trace.influences[neuron.ID]) { 
 	        influence += this.trace.influences[neuron.ID][incoming].weight *
 	          this.trace.influences[neuron.ID][incoming].from.activation;
 	      }
@@ -80,9 +77,7 @@
 	      var input = this.connections.inputs[i];
 
 	      // elegibility trace - Eq. 17
-	      this.trace.elegibility[input.ID] = this.selfconnection.gain * this.selfconnection
-	        .weight * this.trace.elegibility[input.ID] + input.gain * input.from
-	        .activation;
+	      this.trace.elegibility[input.ID] = input.gain * input.from.activation;
 
 	      for (var id in this.trace.extended) {
 	        // extended elegibility trace
@@ -91,9 +86,7 @@
 	        var influence = influences[neuron.ID];
 
 	        // eq. 18
-	        xtrace[input.ID] = neuron.selfconnection.gain * neuron.selfconnection
-	          .weight * xtrace[input.ID] + this.derivative * this.trace.elegibility[
-	            input.ID] * influence;
+	        xtrace[input.ID] = this.derivative * this.trace.elegibility[input.ID] * influence;
 	      }
 	    }
 
@@ -134,10 +127,10 @@
 	      // error responsibilities from all the connections gated by this neuron
 	      for (var id in this.trace.extended) {
 	        var neuron = this.neighboors[id]; // gated neuron
-	        var influence = neuron.selfconnection.gater == this ? neuron.old : 0; // if gated neuron's selfconnection is gated by this neuron
+	        var influence = 0;
 
 	        // index runs over all the connections to the gated neuron that are gated by this neuron
-	        for (var input in this.trace.influences[id]) { // captures the effect that the input connection of this neuron have, on a neuron which its input/s is/are gated by this neuron
+	        for (var input in this.trace.influences[id]) { 
 	          influence += this.trace.influences[id][input].weight * this.trace.influences[
 	            neuron.ID][input].from.activation;
 	        }
@@ -174,11 +167,6 @@
 	  },
 
 	  project: function(neuron, weight) {
-	    // self-connection
-	    if (neuron == this) {
-	      this.selfconnection.weight = 1;
-	      return this.selfconnection;
-	    }
 
 	    // check if connection already exists
 	    var connected = this.connected(neuron);
@@ -213,15 +201,6 @@
 	      type: null,
 	      connection: false
 	    };
-
-	    if (this == neuron) {
-	      if (this.selfconnected()) {
-	        result.type = 'selfconnection';
-	        result.connection = this.selfconnection;
-	        return result;
-	      } else
-	        return false;
-	    }
 
 	    for (var type in this.connections) {
 	      for (var connection in this.connections[type]) {
@@ -433,11 +412,6 @@
 	        var influence = getVar('influences[' + neuron.ID + ']');
 	        var neuron_old = getVar(neuron, 'old');
 	        var initialized = false;
-	        if (neuron.selfconnection.gater == this)
-	        {
-	          buildSentence(influence, ' = ', neuron_old, store_trace);
-	          initialized = true;
-	        }
 	        for (var incoming in this.trace.influences[neuron.ID]) {
 	          var incoming_weight = getVar(this.trace.influences[neuron.ID]
 	            [incoming], 'weight');
@@ -476,22 +450,9 @@
 	            .elegibility[input.ID]);
 	          var xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID,
 	            this.trace.extended[neuron.ID][input.ID]);
-	          if (neuron.selfconnected())
-	            var neuron_self_weight = getVar(neuron.selfconnection, 'weight');
-	          if (neuron.selfconnection.gater)
-	            var neuron_self_gain = getVar(neuron.selfconnection, 'gain');
-	          if (neuron.selfconnected())
-	            if (neuron.selfconnection.gater)
-	              buildSentence(xtrace, ' = ', neuron_self_gain, ' * ',
-	                neuron_self_weight, ' * ', xtrace, ' + ', derivative, ' * ',
-	                trace, ' * ', influence, store_trace);
-	            else
-	              buildSentence(xtrace, ' = ', neuron_self_weight, ' * ',
-	                xtrace, ' + ', derivative, ' * ', trace, ' * ',
-	                influence, store_trace);
-	          else
-	            buildSentence(xtrace, ' = ', derivative, ' * ', trace, ' * ',
-	              influence, store_trace);
+
+	          buildSentence(xtrace, ' = ', derivative, ' * ', trace, ' * ',
+	            influence, store_trace);
 	        }
 	      }
 	      for (var connection in this.connections.gated) {
@@ -541,10 +502,8 @@
 	            var neuron = this.neighboors[id];
 	            var influence = getVar('aux_2');
 	            var neuron_old = getVar(neuron, 'old');
-	            if (neuron.selfconnection.gater == this)
-	              buildSentence(influence, ' = ', neuron_old, store_propagation);
-	            else
-	              buildSentence(influence, ' = 0', store_propagation);
+				
+	            buildSentence(influence, ' = 0', store_propagation);
 	            for (var input in this.trace.influences[neuron.ID]) {
 	              var connection = this.trace.influences[neuron.ID][input];
 	              var connection_weight = getVar(connection, 'weight');
@@ -616,10 +575,8 @@
 	            var neuron = this.neighboors[id];
 	            var influence = getVar('aux');
 	            var neuron_old = getVar(neuron, 'old');
-	            if (neuron.selfconnection.gater == this)
-	              buildSentence(influence, ' = ', neuron_old, store_propagation);
-	            else
-	              buildSentence(influence, ' = 0', store_propagation);
+	            
+				buildSentence(influence, ' = 0', store_propagation);
 	            for (var input in this.trace.influences[neuron.ID]) {
 	              var connection = this.trace.influences[neuron.ID][input];
 	              var connection_weight = getVar(connection, 'weight');
@@ -807,17 +764,6 @@
 
 	  },
 
-	  // true or false whether the whole layer is self-connected or not
-	  selfconnected: function() {
-
-	    for (var id in this.list) {
-	      var neuron = this.list[id];
-	      if (!neuron.selfconnected())
-	        return false;
-	    }
-	    return true;
-	  },
-
 	  // true of false whether the layer is connected to another layer (parameter) or not
 	  connected: function(layer) {
 	    // Check if ALL to ALL connection
@@ -896,7 +842,6 @@
 	  this.ID = Layer.connection.uid();
 	  this.from = fromLayer;
 	  this.to = toLayer;
-	  this.selfconnection = toLayer == fromLayer;
 	  this.type = type;
 	  this.connections = {};
 	  this.list = [];
@@ -1305,14 +1250,6 @@
 	          to: ids[connection.to.ID],
 	          weight: connection.weight,
 	          gater: connection.gater ? ids[connection.gater.ID] : null,
-	        });
-	      }
-	      if (neuron.selfconnected()) {
-	        connections.push({
-	          from: ids[neuron.ID],
-	          to: ids[neuron.ID],
-	          weight: neuron.selfconnection.weight,
-	          gater: neuron.selfconnection.gater ? ids[neuron.selfconnection.gater.ID] : null,
 	        });
 	      }
 	    }
