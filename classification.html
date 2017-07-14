@@ -3,94 +3,92 @@
 
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="./css/main.css" />
+    <!-- <link rel="stylesheet" href="./css/main.css" /> -->
     <link rel="stylesheet" href="./libs/bootstrap/css/bootstrap.min.css" />
 </head>
 
 <body>
     <div id="app">
-        <div id="canvas"></div>
-        <div class="clearfix"></div>
-        <div id="form" class="">
-            <div class="col-md-12">
-                <div class="form-group">
-                    <label for="">Hàm cần xấp xỉ</label>
-                    <input type="text" name="origin-function" class="form-control" value="sin(x)" />
+        <div class="col-md-6">
+            <div id="canvas"></div>
+            <div class="clearfix"></div>
+            <div class="">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <button type="button" id="submit">Random</button>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="">Nhập số noron lớp ẩn</label>
-                    <input type="text" name="num-layer" class="form-control" value="3" />
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="">Nhập số noron lớp ẩn</label>
+                        <input type="text" name="num-layer" class="form-control" value="3" />
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="">Hệ số học máy</label>
-                    <input type="text" name="learning-rate" class="form-control" value="0.001" />
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="">Hệ số học máy</label>
+                        <input type="text" name="learning-rate" class="form-control" value="0.001" />
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="">Cận dưới</label>
-                    <input type="text" name="lower-bound" class="form-control" value="0" />
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="">Hàm truyền</label>
+                        <select name="squash-function" class="form-control">
+                            <option value="LOGISTIC">LOGISTIC</option>
+                            <option value="IDENTITY">IDENTITY</option>
+                            <option value="TANH">TANH</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="">Cận trên</label>
-                    <input type="text" name="upper-bound" class="form-control" value="6.28" />
-                </div>
-            </div>
-            <div class="col-md-12">
-                <div class="form-group">
-                    <label for="">Số lần lặp</label>
-                    <input type="text" name="num-repeat" class="form-control" value="10000" />
-                </div>
-            </div>
-            <div class="col-md-12">
-                <div class="form-group">
-                    <label for="">Số mẫu</label>
-                    <input type="text" name="num-sample" class="form-control" value="100" />
-                </div>
-            </div>
-            <div class="col-md-12">
-                <div class="form-group">
-                    <button type="button" id="submit">Submit</button>
+                <input type="hidden" id="hidden-input" value="" />
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="">Số lần lặp</label>
+                        <input type="text" name="num-repeat" class="form-control" value="10000" />
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="col-md-6">
+            
+        </div>
+
     </div>
     <script src="./js/jquery-1.11.1.min.js"></script>
     <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
     <!-- Include libraries for plot  -->
-    <script src="./libs/mathjs/math.min.js"></script>
     <script src="./libs/function-plot/d3.min.js"></script>
     <script src="./libs/function-plot/function-plot.1.14.0.js"></script>
     <!-- Include libraries for ANN -->
     <script src="./libs/ann/synaptic.min.js"></script>
     <script src="./libs/ann/underscore-min.js"></script>
+
+    <!-- Include Processing -->
+    <script src="./libs/p5.min.js"></script>
     <script>
-    function draw(origin_function = "sin(x)", apro_points = [], lower_bound = 0, upper_bound = 6.28) {
+    function plotChart(points1 = [], points2 = [], lower_bound = 0, upper_bound = 6.28) {
         try {
             functionPlot({
                 target: '#canvas',
-                data: [{
-                    fn: origin_function,
-                    sampler: 'builtIn', // this will make function-plot use the evaluator of math.js
-                    graphType: 'polyline',
+                data: [ {
+                    points: points1,
+                    fnType: 'points',
+                    graphType: 'scatter',
                     color: '#FF0000',
+                    skipTip: false,
                 }, {
-                    points: apro_points,
+                    points: points2,
                     fnType: 'points',
                     graphType: 'scatter',
                     color: '#00FF00'
                 }],
                 xAxis: {
-                    domain: [lower_bound, upper_bound]
-                }
+                    domain: [-10, 10]
+                },
+                yAxis: {
+                    domain: [-10, 10]
+                },
             });
-
         } catch (err) {
             console.log(err);
             alert(err);
@@ -104,19 +102,47 @@
         Network = synaptic.Network,
         Trainer = synaptic.Trainer,
         Architect = synaptic.Architect;
-
+    var startDraw = false;
     /*
     @brief: Perceptron 3 layers
     */
-    function Perceptron(input, hidden, output) {
+    function Perceptron(input, hidden, output, iSquash = 'LOGISTIC') {
         // create the layers
         var inputLayer = new Layer(input);
         var hiddenLayer = new Layer(hidden);
         var outputLayer = new Layer(output);
-
+        var squash = '';
+        switch (iSquash) {
+            case 'LOGISTIC':
+                squash = Neuron.squash.LOGISTIC;
+                break;
+            case 'TANH':
+                squash = Neuron.squash.TANH;
+                break;
+            case 'IDENTITY':
+                squash = Neuron.squash.IDENTITY;
+                break;
+            case 'HLIM':
+                squash = Neuron.squash.HLIM;
+                break;
+        }
+        inputLayer.set({
+            squash: squash,
+            bias: 1
+        });
+        hiddenLayer.set({
+            squash: squash,
+            bias: 1
+        });
+        outputLayer.set({
+            squash: Neuron.squash.IDENTITY,
+            bias: 0
+        });
         // connect the layers
         inputLayer.project(hiddenLayer);
         hiddenLayer.project(outputLayer);
+
+
 
         // set the layers
         this.set({
@@ -138,33 +164,48 @@
         $('#submit').trigger('click');
         //Submit button handler
         $('#submit').click(function(event) {
+            //Prevent click event
             event.preventDefault();
+            //Collect parameters
             var params = {
-                origin_function: $('input[name=origin-function]').val(),
+                squash_function: $('select[name=squash-function]').val(),
                 num_layers: parseInt($('input[name=num-layer').val()),
                 learning_rate: parseFloat($('input[name=learning-rate]').val()),
-                lower_bound: parseFloat($('input[name=lower-bound]').val()),
-                upper_bound: parseFloat($('input[name=upper-bound').val()),
                 num_repeat: parseInt($('input[name=num-repeat]').val()),
-                num_sample: parseInt($('input[name=num-sample]').val()),
             }
-            var myPerceptron = new Perceptron(1, 2, 1);
+            //Create new Perceptron
+            var myPerceptron = new Perceptron(2, 3, 1, params.squash_function);
             var myTrainer = new Trainer(myPerceptron);
+
+            //Create random red candidates
+            var red_points = [];
+            var num_red_points = Math.floor(Math.random() * 50) + 50;
+            for (var i = 0; i < num_red_points; i++) {
+                red_points.push([Math.random() * 20 - 10, Math.random() * 20 - 10]);
+            }
+            //Create random green candidates
+            var green_points = [];
+            var num_green_points = Math.floor(Math.random() * 50) + 50;
+            for (var i = 0; i < num_green_points; i++) {
+                green_points.push([Math.random() * 20 - 10, Math.random() * 20 - 10]);
+            }
+            plotChart(red_points, green_points, params.lower_bound, params.upper_bound);
+
+
+            /*****Merge point for training set******/
             var trainingSet = [];
-            //Create training set
-            var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
-            for (var i = 0; i < params.num_sample; i++) {
-                var calc_x = params.lower_bound + delta * i;
-                var calc_y = math.eval(params.origin_function, {
-                    x: calc_x
-                });
+            for (var i = 0; i < num_red_points; i++) {
                 trainingSet.push({
-                    input: [calc_x],
-                    output: [calc_y]
+                    input: [red_points[i][0], red_points[i][1]],
+                    output: [0]         //Red is zero
                 })
             }
-
-
+            for (var i = 0; i < num_green_points; i++) {
+                trainingSet.push({
+                    input: [green_points[i][0], green_points[i][1]],
+                    output: [1]
+                })
+            }
             myTrainer.train(trainingSet, {
                 rate: params.learning_rate,
                 iterations: params.num_repeat,
@@ -174,17 +215,145 @@
                 cost: Trainer.cost.MSE
             });
 
-            //Trainning complete. Whoo hoo
-            var apro_points = [];
-            for (var i = 0; i < params.num_sample; i++) {
-                var calc_x = params.lower_bound + delta * i;
-                var calc_y = myPerceptron.activate([calc_x]);
-                apro_points.push([calc_x, calc_y]);
-            }
-
-            draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
+            //TODO: Update neural network
+            $('#hidden-input').val(JSON.stringify(myPerceptron.toJSON()));
+            startDraw = true;
         });
     });
+    </script>
+
+    
+    <!-- 
+    @brief: Draw neural network
+    -->
+    <script>
+        var inputList = [];
+        var hiddenList = [];
+        var outputList = [];
+        var pathList = [];
+
+        function setup(){
+            var canvasDiv = document.getElementById('app');
+            var sketchCanvas = createCanvas(600, 600);
+            sketchCanvas.parent("app");
+            //Nodes
+            for (var i = 0; i < 3; i++){
+                hiddenList.push(new Hidden(260, 100+150*i));
+            }
+            for(var j = 0; j < 2; j++){
+                inputList.push(new Input(150*j+25));
+            }
+            for (var j = 0; j<1; j++){
+                outputList.push(new Output(250+150*j));
+            }
+            //Paths from inputs to hidden1
+            for (var n = 0; n < inputList.length; n++){ 
+                for (var h=0; h < hiddenList.length; h++){ 
+                    pathList.push(new Path(inputList[n], hiddenList[h], false));
+                }
+            }
+            //Paths from hidden2 to outputs
+            for (var h = 0; h < hiddenList.length; h++){  
+                for(var o=0; o < outputList.length; o++){ 
+                    pathList.push(new Path(hiddenList[h], outputList[o], false));
+                }
+            }
+
+            background(0);
+            for (var p = 0; p < pathList.length; p++){
+                pathList[p].update();
+            }
+            for (var h = 0; h < hiddenList.length; h++){
+                hiddenList[h].update();
+            }
+            for (var n = 0; n < inputList.length; n++){ 
+                inputList[n].update();
+            }
+            for (var o = 0; o < outputList.length; o++){
+                outputList[o].update();
+            }
+        }
+        function draw(){
+            if (startDraw) {
+                background(0);
+
+                var network = JSON.parse($('#hidden-input').val());
+                var connections = network.connections;
+                for (var p = 0; p < pathList.length; p++){
+                    pathList[p].update(connections[p].weight.toFixed(2));
+                }
+                for (var h = 0; h < hiddenList.length; h++){
+                    hiddenList[h].update();
+                }
+                for (var n = 0; n < inputList.length; n++){ 
+                    inputList[n].update();
+                }
+                for (var o = 0; o < outputList.length; o++){
+                    outputList[o].update();
+                }
+                startDraw = false;
+            }
+        }
+        function Hidden(x,y){
+            this.x = x;
+            this.y = y;
+            this.sz = 40;
+            this.col = color(0);
+            this.energy = 0;
+            this.update = function(){
+                stroke(this.col);
+                fill(color(255));
+                ellipse(this.x,this.y,this.sz,this.sz);
+            }
+        }
+
+        function Input(y){
+            this.col = color(237,168,93);
+            this.x = 70;
+            this.y = y;
+            this.sz = 40;
+            this.energy = 0;
+            this.update = function(){
+               this.col = color(93,168,237);
+                fill(this.col);
+                noStroke();
+                ellipse(this.x,this.y,this.sz,this.sz);
+            }
+        }
+                        
+        function Output(y){
+            this.x = 530;
+            this.y = y;
+            this.sz = 40;
+            this.energy = 0;
+            this.col = color(93,168,237);
+            this.update = function(){
+                this.col = color(93,168,237);
+                fill(this.col);
+                noStroke();
+                ellipse(this.x,this.y,this.sz,this.sz);
+            }
+        }
+            
+        function Path(node1, node2, clicked){
+            this.node1 = node1;
+            this.node2 = node2;
+            this.energy = random(10);
+            this.clicked = clicked;
+            this.clickedTime = 10;
+            this.update = function(weight = 0){
+                stroke(255,255,0);
+                line(this.node1.x,this.node1.y,
+                     this.node2.x,this.node2.y);
+                fill(255);
+                noStroke();
+                var center = {
+                    x: Math.floor((this.node1.x+this.node2.x)/2),
+                    y: Math.floor((this.node1.y+this.node2.y)/2)
+                }
+                text(weight, (center.x+this.node2.x)/2, (center.y+this.node2.y)/2);
+            }
+        }
     </script>
 </body>
 

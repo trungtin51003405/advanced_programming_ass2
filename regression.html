@@ -194,8 +194,10 @@
                 num_sample: parseInt($('input[name=num-sample]').val()),
                 err_rate: parseFloat($('input[name=error-rate]').val()),
             }
+
             var myPerceptron = new Perceptron(1, 2, 1, params.transfer_function);
             var myTrainer = new Trainer(myPerceptron);
+          
             var trainingSet = [];
             //Create training set
             var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
@@ -226,8 +228,7 @@
                 var calc_y = myPerceptron.activate([calc_x]);
                 apro_points.push([calc_x, calc_y]);
             }
-            // console.log(myPerceptron.toDot());
-            // console.log(myPerceptron.toJSON());
+
             draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
         });
     });
