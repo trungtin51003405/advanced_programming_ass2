@@ -62,7 +62,6 @@
     <!-- Include libraries for ANN -->
     <!-- <script src="./libs/ann/synaptic.min.js"></script> -->
     <script src="./libs/ann/ann.js"></script>
-    <script src="./libs/ann/underscore-min.js"></script>
 
     <!-- Include Processing -->
     <script src="./libs/p5.min.js"></script>
@@ -239,11 +238,14 @@
             sketchCanvas.parent("app");
             //Nodes
             for (var i = 0; i < 3; i++){
-                hiddenList.push(new Hidden(260, 100+150*i));
+                hiddenList.push(new Hidden(300, 100+150*i));
             }
-            for(var j = 0; j < 2; j++){
-                inputList.push(new Input(150*j+25));
-            }
+            // for(var j = 0; j < 2; j++){
+            //     inputList.push(new Input(150*j+25));
+            // }
+            inputList.push(new Input(145));
+            inputList.push(new Input(295));
+
             for (var j = 0; j<1; j++){
                 outputList.push(new Output(250+150*j));
             }
@@ -267,9 +269,11 @@
             for (var h = 0; h < hiddenList.length; h++){
                 hiddenList[h].update();
             }
-            for (var n = 0; n < inputList.length; n++){ 
-                inputList[n].update();
-            }
+            // for (var n = 0; n < inputList.length; n++){ 
+            //     inputList[n].update();
+            // }
+            inputList[0].update('x');
+            inputList[1].update('y');
             for (var o = 0; o < outputList.length; o++){
                 outputList[o].update();
             }
@@ -304,7 +308,7 @@
             this.update = function(){
                 stroke(this.col);
                 fill(color(255));
-                ellipse(this.x,this.y,this.sz,this.sz);
+                ellipse(this.x, this.y, this.sz, this.sz);
             }
         }
 
@@ -314,11 +318,14 @@
             this.y = y;
             this.sz = 40;
             this.energy = 0;
-            this.update = function(){
-               this.col = color(93,168,237);
+            this.update = function(txt){
+                this.col = color(93,168,237);
                 fill(this.col);
                 noStroke();
                 ellipse(this.x,this.y,this.sz,this.sz);
+                fill(255);
+                noStroke();
+                text(txt, this.x-46, this.y+4);
             }
         }
                         
