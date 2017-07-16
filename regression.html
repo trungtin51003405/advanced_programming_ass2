@@ -34,7 +34,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Nhập số noron lớp ẩn</label>
-                    <input type="text" name="num-layer" class="form-control" value="3" />
+                    <input type="text" name="num-neurons" class="form-control" value="3" />
                 </div>
             </div>
             <div class="col-md-6">
@@ -58,7 +58,7 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label for="">Số lần lặp</label>
-                    <input type="text" name="num-repeat" class="form-control" value="100000" />
+                    <input type="text" name="num-repeat" class="form-control" value="10000" />
                 </div>
             </div>
             <div class="col-md-6">
@@ -75,7 +75,7 @@
             </div>
             <div class="col-md-12">
                 <div class="form-group">
-                    <button type="button" id="submit">Submit</button>
+                    <button type="button" id="submit">Hồi quy</button>
                 </div>
             </div>
         </div>
@@ -92,7 +92,7 @@
     <!-- Include libraries for ANN -->
     <script src="./libs/ann/ann.js"></script>
     <script>
-    function draw(origin_function = "sin(x)", apro_points = [], lower_bound = 0, upper_bound = 6.28) {
+    function draw(origin_function = "sin(x)", random_points = [], apro_points = [], lower_bound = 0, upper_bound = 6.28) {
         try {
             functionPlot({
                 target: '#canvas',
@@ -101,6 +101,11 @@
                     sampler: 'builtIn', // this will make function-plot use the evaluator of math.js
                     graphType: 'polyline',
                     color: '#FF0000',
+                }, {
+                    points: random_points,
+                    fnType: 'points',
+                    graphType: 'scatter',
+                    color: '#000000'
                 }, {
                     points: apro_points,
                     fnType: 'points',
@@ -115,6 +120,32 @@
             console.log(err);
             alert(err);
         }
+    }
+    function gaussian(mean, stdev) {
+        var y2;
+        var use_last = false;
+        return function() {
+            var y1;
+            if(use_last) {
+               y1 = y2;
+               use_last = false;
+            }
+            else {
+                var x1, x2, w;
+                do {
+                     x1 = 2.0 * Math.random() - 1.0;
+                     x2 = 2.0 * Math.random() - 1.0;
+                     w  = x1 * x1 + x2 * x2;               
+                } while( w >= 1.0);
+                w = Math.sqrt((-2.0 * Math.log(w))/w);
+                y1 = x1 * w;
+                y2 = x2 * w;
+                use_last = true;
+           }
+
+           var retval = mean + stdev * y1;
+           return retval;
+       }
     }
 
     /*
@@ -180,7 +211,7 @@
             var params = {
                 origin_function: $('input[name=origin-function]').val(),
                 transfer_function: $('select[name=transfer-function]').val(),
-                num_layers: parseInt($('input[name=num-layer').val()),
+                num_neurons: parseInt($('input[name=num-neurons').val()),
                 learning_rate: parseFloat($('input[name=learning-rate]').val()),
                 lower_bound: parseFloat($('input[name=lower-bound]').val()),
                 upper_bound: parseFloat($('input[name=upper-bound').val()),
@@ -189,22 +220,28 @@
                 err_rate: parseFloat($('input[name=error-rate]').val()),
             }
 
-            var myPerceptron = new Perceptron(1, 2, 1, params.transfer_function);
+            var myPerceptron = new Perceptron(1, params.num_neurons, 1, params.transfer_function);
             var myTrainer = new Trainer(myPerceptron);
           
             var trainingSet = [];
             //Create training set
             var delta = (params.upper_bound - params.lower_bound) / params.num_sample;
+
             for (var i = 0; i < params.num_sample; i++) {
                 var calc_x = params.lower_bound + delta * i;
                 var calc_y = math.eval(params.origin_function, {
                     x: calc_x
                 });
+                var gauss = gaussian(calc_y, 2 * delta);
                 trainingSet.push({
                     input: [calc_x],
-                    output: [calc_y]
+                    output: [gauss()]
                 })
             }
+
+            var random_points = trainingSet.map(function(currentValue) {
+                return [currentValue.input[0], currentValue.output[0]];
+            });
 
             myTrainer.train(trainingSet, {
                 rate: params.learning_rate,
@@ -223,7 +260,9 @@
                 apro_points.push([calc_x, calc_y]);
             }
 
-            draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
+            // draw(params.origin_function, apro_points, params.lower_bound, params.upper_bound);
+            draw(params.origin_function, random_points, apro_points, params.lower_bound, params.upper_bound);
+
         });
     });
     </script>

@@ -5,20 +5,23 @@
     <meta charset="utf-8">
     <!-- <link rel="stylesheet" href="./css/main.css" /> -->
     <link rel="stylesheet" href="./libs/bootstrap/css/bootstrap.min.css" />
+    <style type="text/css">
+        circle {
+            r: 5;
+        }
+    </style>
 </head>
 
 <body>
     <div id="app">
+        <div class="col-md-12">
+            <h1 class="text-center">Bài tập lớn Lập trình nâng cao</h1>
+        </div>
         <div class="col-md-6">
             <div id="canvas"></div>
             <div class="clearfix"></div>
             <div class="">
-                <div class="col-md-12">
-                    <div class="form-group">
-                        <button type="button" id="submit">Random</button>
-                    </div>
-                </div>
-                <div class="col-md-6">
+                <div class="col-md-6" style="display: none">
                     <div class="form-group">
                         <label for="">Nhập số noron lớp ẩn</label>
                         <input type="text" name="num-layer" class="form-control" value="3" />
@@ -45,6 +48,11 @@
                     <div class="form-group">
                         <label for="">Số lần lặp</label>
                         <input type="text" name="num-repeat" class="form-control" value="10000" />
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <button type="button" id="submit">Phân lớp</button>
                     </div>
                 </div>
             </div>
@@ -288,9 +296,8 @@
                 for (var h = 0; h < hiddenList.length; h++){
                     hiddenList[h].update();
                 }
-                for (var n = 0; n < inputList.length; n++){ 
-                    inputList[n].update();
-                }
+                inputList[0].update('x');
+                inputList[1].update('y');
                 for (var o = 0; o < outputList.length; o++){
                     outputList[o].update();
                 }
@@ -316,7 +323,7 @@
             this.y = y;
             this.sz = 40;
             this.energy = 0;
-            this.update = function(txt){
+            this.update = function(txt = ''){
                 this.col = color(93,168,237);
                 fill(this.col);
                 noStroke();
